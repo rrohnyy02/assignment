@@ -57,7 +57,7 @@ def summarize_audio():
     response = transcribe_audio()
     json_data = response.json
     text= str(json_data['result'])
-    openai.api_key = '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'
+    openai.api_key = openaikey
     
     chat_completion = openai.chat.completions.create(
                                 model="gpt-3.5-turbo",
