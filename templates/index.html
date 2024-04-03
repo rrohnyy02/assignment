@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Sentiment Analysis</title>
+    <!-- Include Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS for loading indicator */
+        .loading-indicator {
+            display: none;
+            margin-top: 10px;
+        }
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        /* Bigger input box */
+        .bigger-input {
+            width: 500px;
+            height: 70px;
+        }
+
+        .card {
+            max-width: 100px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            text-align: left;
+        }
+
+        .transcription {
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        /* Card styling */
+        .output-card {
+            max-width: 500px;
+            background-color: bisque; /* Light gray */
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        /* Chart container styling */
+        .chart-container {
+            margin-top: 20px;
+            max-width: 300px;
+            max-height: 300px; /* Set max width for small-sized charts */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-4 text-center mt-20">Audio Sentiment Analysis</h1>
+        <div class="center-container">
+            <input type="file" id="audioInput" accept="audio/*" class="p-2 border border-gray-300 rounded-lg bigger-input mb-4"> <!-- Added mb-4 for margin bottom -->
+            <!-- Buttons for different analyses -->
+            <div class="flex justify-center"> <!-- Changed mt-4 to flex and justify-center -->
+                <button id="getTranscriptionBtn" class="bg-green-500 text-white px-6 py-4 rounded-lg mx-1">Transcription</button> <!-- Changed mr-1 to mx-1 -->
+                <button id="summaryBtn" class="bg-yellow-500 text-white px-6 py-4 rounded-lg mx-1">Summary </button> <!-- Changed mr-1 to mx-1 -->
+                <button id="psychoanalysisBtn" class="bg-purple-500 text-white px-6 py-4 rounded-lg mx-1">Psychoanalysis</button> <!-- Changed mr-1 to mx-1 -->
+                <button id="ratingBtn" class="bg-blue-500 text-white px-6 py-4 rounded-lg mx-1">  Ratings    </button> <!-- Changed mr-1 to mx-1 -->
+                <button id="SpkrBtn" class="bg-blue-500 text-white px-6 py-4 rounded-lg mx-1">  Speaker Insights   </button> <!-- Changed mr-1 to mx-1 -->
+            </div>
+        </div>
+        
+        
+        <!-- Loading indicator and output container -->
+        <div class="center-container">
+            <!-- Loading indicator -->
+            <div id="loadingIndicator" class="loading-indicator">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+                <div>Loading...</div>
+            </div>
+            <!-- Output -->
+            <div id="results" class="mt-8"></div>
+            <!-- Chart -->
+            <canvas id="characteristicsChart" class="mt-8"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        // Function to toggle loading indicator visibility
+        function toggleLoadingIndicator(visible) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (visible) {
+                loadingIndicator.style.display = 'block';
+            } else {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Function to clear previous output
+        function clearPreviousOutput() {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = ''; // Clearing previous output
+        }
+
+        // Function to perform analysis for a given URL
+        function performAnalysis(url) {
+            clearPreviousOutput(); // Clear previous output
+            toggleLoadingIndicator(true); // Show loading indicator
+            const fileInput = document.getElementById('audioInput');
+            const file = fileInput.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('audio', file);
+                
+                return fetch(url, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    toggleLoadingIndicator(false); // Hide loading indicator
+                    return data;
+                })
+                .catch(error => {
+                    toggleLoadingIndicator(false); // Hide loading indicator on error
+                    console.error('Error:', error);
+                });
+            } else {
+                toggleLoadingIndicator(false); // Hide loading indicator
+                alert('Please select an audio file.');
+                return Promise.resolve(); // Return a resolved promise if no file selected
+            }
+        }
+
+        // Function to reset button color
+        function resetButtonColor(buttonId) {
+            document.getElementById(buttonId).classList.remove('bg-opacity-50');
+        }
+
+        // Event listeners for each button
+    document.getElementById('getTranscriptionBtn').addEventListener('click', function() {
+            this.classList.add('bg-opacity-50'); // Dim button color
+            performAnalysis('/transcription')
+            .then(data => {
+                // Split the transcription text into separate lines for each speaker's dialogue
+                // document.getElementById('results').innerHTML = `<div class="output-card"><p><strong>Transcription:</strong> ${data.result}</p></div>`;
+                // Reset button color
+            const lines = data.result.split(/\n/);
+            let formattedTranscription = '';
+            lines.forEach(line => {
+                const parts = line.split(': ');
+                if (parts.length === 2) {
+                    formattedTranscription += `<div style="text-align:left;"><strong>${parts[0]}:</strong><br>${parts[1]}</div>`;
+                }
+            });
+            document.getElementById('results').innerHTML = `<div class="output-card"><p><strong>Transcription:</strong></p>${formattedTranscription}</div>`;
+                
+        // Reset button color
+
+
+                resetButtonColor('getTranscriptionBtn'); // Reset button color
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resetButtonColor('getTranscriptionBtn'); // Reset button color on error
+            });
+        });
+
+        // Event listener for the 'Summary' button
+document.getElementById('summaryBtn').addEventListener('click', function() {
+    this.classList.add('bg-opacity-50'); // Dim button color
+    performAnalysis('/summary')
+    .then(data => {
+        document.getElementById('results').innerHTML = `<div class="output-card"><p><strong>Summary:</strong> ${data.result}</p></div>`;
+        resetButtonColor('summaryBtn'); // Reset button color
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resetButtonColor('summaryBtn'); // Reset button color on error
+    });
+});
+
+
+
+document.getElementById('SpkrBtn').addEventListener('click', function() {
+    this.classList.add('bg-opacity-50'); // Dim button color
+    performAnalysis('/Insights')
+    .then(data => {
+        document.getElementById('results').innerHTML = `<div class="output-card"><p><strong>Insights:</strong> <br> ${data.result}</p></div>`;
+        resetButtonColor('SpkrBtn'); // Reset button color
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resetButtonColor('SpkrBtn'); // Reset button color on error
+    });
+});
+
+
+
+
+
+
+
+// Event listener for the 'Psychoanalysis' button
+document.getElementById('psychoanalysisBtn').addEventListener('click', function() {
+    this.classList.add('bg-opacity-50'); // Dim button color
+    performAnalysis('/psychoanalysis')
+    .then(data => {
+
+        const lines = data.result.split(/\n/);
+            let formattedTranscription = '';
+            lines.forEach(line => {
+                const parts = line.split(': ');
+                if (parts.length === 2) {
+                    formattedTranscription += `<div style="text-align:left;"><strong>${parts[0]}:</strong><br>${parts[1]}</div>`;
+                }
+            });
+            document.getElementById('results').innerHTML = `<div class="output-card"><p><strong>Psycho-analysis:</strong></p>${formattedTranscription}</div>`;
+
+
+
+
+        // var paragraphs = data.result.split('\n\n');
+
+        // // Generate HTML for each paragraph
+        // var html = '<div class="output-card"><strong>Psychoanalysis:</strong><br>';
+        // paragraphs.forEach(paragraph => {
+        //     html += '<p>' + paragraph + '</p><br><br>';
+        // });
+        // html += '</div>';
+
+        // // Set the HTML content inside the 'results' element
+        // document.getElementById('results').innerHTML = html;
+        resetButtonColor('psychoanalysisBtn'); // Reset button color
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resetButtonColor('psychoanalysisBtn'); // Reset button color on error
+    });
+});
+
+// Event listener for the 'Rating' button
+document.getElementById('ratingBtn').addEventListener('click', function() {
+    this.classList.add('bg-opacity-50'); // Dim button color
+    performAnalysis('/rating')
+    .then(data => {
+        const ratings = JSON.parse(data.result);
+        const authors = Object.keys(ratings);
+        
+        authors.forEach(author => {
+            const authorData = ratings[author];
+            const aspectLabels = Object.keys(authorData);
+            const aspectRatings = Object.values(authorData);
+            
+            const ctx = document.createElement('canvas').getContext('2d');
+            const chartContainer = document.createElement('div');
+            chartContainer.classList.add('chart-container');
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 10; // Set the width of the canvas
+            canvas.height = 10; // Set the height of the canvas
+            chartContainer.appendChild(canvas);
+
+            document.getElementById('results').appendChild(chartContainer);
+            chartContainer.appendChild(ctx.canvas);
+
+            const backgroundColors = ['pink', 'green' , 'orange' , 'blue' , 'yellow'];
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: aspectLabels,
+                    datasets: [{
+                        label: author,
+                        data: aspectRatings,
+                        backgroundColor: backgroundColors,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: [{
+                            ticks: {
+                                min: 0, // Set minimum to 0
+                                max: 10,
+                                stepSize: 1
+                            }
+                        }]
+                    }
+                }
+            });
+        });
+        resetButtonColor('ratingBtn'); // Reset button color
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resetButtonColor('ratingBtn'); // Reset button color on error
+    });
+});
+    </script>
+</body>
+</html>
